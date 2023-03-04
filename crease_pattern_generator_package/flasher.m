@@ -2,7 +2,7 @@
 % thickness-accommodating flasher with N gores (or 2N major folds), n nodes
 % per major fold line, h is the thickness, A is the radius of the hub
 
-function [nodes_planar, nodes_folded, edges, faces] = flasher(N, n, h, A)
+function [nodes_planar, nodes_folded, edges, faces, quad_faces] = flasher(N, n, h, A)
     beta    = 2*pi()/N;
     delta_z = 2*A*sin(beta/2)*tan(beta/2); % changes in height of mountain for a zero-thickness flasher
     d       = h/cos(beta/2);
@@ -35,6 +35,7 @@ function [nodes_planar, nodes_folded, edges, faces] = flasher(N, n, h, A)
     nodes_folded    = [];
     edges           = [];
     faces           = [];
+    quad_faces      = [];
 
     for j = 1:N
         nodes_planar    = [nodes_planar, (rot^(j - 1))*v_nodes_planar, (rot^(j - 1))*m_nodes_planar];
@@ -55,28 +56,34 @@ function [nodes_planar, nodes_folded, edges, faces] = flasher(N, n, h, A)
                 v_id(1, j),     v_id(2, j);...      % major valley
                 v_id(1, j),     m_id(2, j);...      % major mountain
                 m_id(2, j),     v_id(1, j + 1);...  % minor valley
-                m_id(2, j),     v_id(2, j)];%;...      % minor mountain                    
-                %m_id(2, j),     v_id(2, j + 1)];    % diagonal
+                m_id(2, j),     v_id(2, j)]; %;...      % minor mountain                    
+%                 m_id(2, j),     v_id(2, j + 1)];    % diagonal
                             
         faces = [faces;...
                 v_id(1, j),     m_id(2, j), v_id(2, j);...                    
                 v_id(1, j),     m_id(2, j), v_id(1, j + 1);...
-                v_id(1, j + 1), m_id(2, j), v_id(2, j + 1)];
-                
+                v_id(1, j + 1), m_id(2, j), v_id(2, j + 1)]; % triangulated
+%         quad_faces = [quad_faces;...
+%             v_id(1, j + 1), m_id(2, j), m_id(3, j), v_id(2, j + 1)];
+
         for i = 2:(n - 1)            
             edges = [edges;...
                     v_id(i, j),     v_id(i + 1, j);...  % major valley
                     m_id(i, j),     m_id(i + 1, j);...  % major mountain
                     m_id(i + 1, j), v_id(i, j + 1);...  % minor valley
                     m_id(i + 1, j), v_id(i + 1, j)];%;...  % minor mountain
-                    %m_id(i, j),     v_id(i + 1, j);...  % diagonal                    
-                    %m_id(i + 1, j), v_id(i + 1, j + 1)];% diagonal            
-                
+%                     m_id(i, j),     v_id(i + 1, j);...  % diagonal                    
+%                     m_id(i + 1, j), v_id(i + 1, j + 1)];% diagonal            
+            % triangulated    
             faces = [faces;...
                     v_id(i, j),     m_id(i, j),     v_id(i + 1, j);...
                     m_id(i, j),     v_id(i + 1, j), m_id(i + 1, j);...
                     m_id(i, j),     m_id(i + 1, j), v_id(i, j + 1);...
                     v_id(i, j + 1), v_id(i + 1, j + 1), m_id(i + 1, j)];
+            quad_faces = [quad_faces;...
+                    v_id(i, j),     m_id(i, j),     m_id(i + 1, j),  v_id(i + 1, j);... 
+                    m_id(i, j),     v_id(i-1,j+1),  v_id(i,j+1),     m_id(i+1, j);...
+                ];
         end        
     end
 end
