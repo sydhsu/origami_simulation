@@ -2,7 +2,7 @@
 % thickness-accommodating flasher with N gores (or 2N major folds), n nodes
 % per major fold line, h is the thickness, A is the radius of the hub
 
-function [nodes_conical, nodes_folded, edges, faces] = flasherConical_v3(N, n, h, A, phi)
+function [nodes_conical, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasherConical_v3(N, n, h, A, phi)
     beta    = 2*pi()/N;
     delta_z = 2*A*sin(beta/2)*tan(beta/2); % changes in height of mountain for a zero-thickness flasher
     d       = h/cos(beta/2);
@@ -31,7 +31,9 @@ function [nodes_conical, nodes_folded, edges, faces] = flasherConical_v3(N, n, h
     nodes_conical   = [];
     nodes_folded    = [];
     edges           = [];
-    faces           = [];
+    triangulated    = [];
+    tri_faces       = [];
+    quad_faces      = [];
 
     for j = 1:N
         nodes_conical   = [nodes_conical, (rot^(j - 1))*v_conical, (rot^(j - 1))*m_conical];
@@ -53,12 +55,17 @@ function [nodes_conical, nodes_folded, edges, faces] = flasherConical_v3(N, n, h
                 v_id(1, j),     m_id(2, j);...      % major mountain
                 m_id(2, j),     v_id(1, j + 1);...  % minor valley
                 m_id(2, j),     v_id(2, j);...      % minor mountain                    
-                m_id(2, j),     v_id(2, j + 1)];    % diagonal
+%                 m_id(2, j),     v_id(2, j + 1)];    % diagonal
+        ];
                             
-        faces = [faces;...
+        triangulated = [triangulated;...
                 v_id(1, j),     m_id(2, j), v_id(2, j);...                    
                 v_id(1, j),     m_id(2, j), v_id(1, j + 1);...
                 v_id(1, j + 1), m_id(2, j), v_id(2, j + 1)];
+
+        tri_faces = [tri_faces;...
+                v_id(1, j),     m_id(2, j), v_id(2, j);...                    
+                v_id(1, j),     m_id(2, j), v_id(1, j + 1)];
                 
         for i = 2:(n - 1)            
             edges = [edges;...
@@ -67,16 +74,21 @@ function [nodes_conical, nodes_folded, edges, faces] = flasherConical_v3(N, n, h
                     m_id(i + 1, j), v_id(i, j + 1);...  % minor valley
                     m_id(i + 1, j), v_id(i + 1, j);...  % minor mountain
                     %m_id(i, j),     v_id(i + 1, j);...  % diagonal     
-                    v_id(i, j),     m_id(i + 1, j);... % cross-diagonal to one above            
-                    m_id(i + 1, j), v_id(i + 1, j + 1)];% diagonal            
+%                     v_id(i, j),     m_id(i + 1, j);... % cross-diagonal to one above            
+%                     m_id(i + 1, j), v_id(i + 1, j + 1)];% diagonal   
+            ];
                 
-            faces = [faces;...
+            triangulated = [triangulated;...
                     %v_id(i, j),     m_id(i, j),     v_id(i + 1, j);...
                     %m_id(i, j),     v_id(i + 1, j), m_id(i + 1, j);...
                     v_id(i, j),     m_id(i + 1, j), m_id(i, j);...
                     v_id(i, j),     v_id(i + 1, j), m_id(i + 1, j);...
                     m_id(i, j),     m_id(i + 1, j), v_id(i, j + 1);...
                     v_id(i, j + 1), v_id(i + 1, j + 1), m_id(i + 1, j)];
+            
+            quad_faces = [quad_faces;...
+                    v_id(i, j),     m_id(i, j),     m_id(i + 1, j),  v_id(i + 1, j);... 
+                    m_id(i, j),     v_id(i-1,j+1),  v_id(i,j+1),     m_id(i+1, j)];
         end        
     end
 end

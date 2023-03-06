@@ -1,4 +1,4 @@
-clear all; close all; clc;
+% clear all; close all; clc;
 
 % A   = 6e-2;
 % N   = 9;
@@ -12,10 +12,10 @@ clear all; close all; clc;
 % k   = 0.5;
 % n   = 21;
 
-A   = 800;  % radius of inner polygon
-N   = 12;   % number of sides of polygon
-h   = 32;   % thickness
-n   = 11;   % number of minor folds
+% A   = 800;  % radius of inner polygon
+% N   = 12;   % number of sides of polygon
+% h   = 32;   % thickness
+% n   = 11;   % number of minor folds
 
 % A   = 400;
 % N   = 8;
@@ -23,29 +23,47 @@ n   = 11;   % number of minor folds
 % k   = 0.5;
 % n   = 7;
 
-[nodes_planar, nodes_folded, edges, faces] = flasher(N, n, h, A);
+A   = 400;  % radius of inner polygon
+N   = 6;   % number of sides of polygon
+h   = 10;   % thickness
+n   = 7;   % number of minor folds
+
+% A   = .734; % [m] %400;  % radius of inner polygon
+% N   = 14; %6;   % number of sides of polygon
+% h   = 16e-3; % [m] thickness
+% n   = 14;
+
+%[nodes_planar, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasher(N, n, h, A);
+% conical flasher
+phi_deg = 5.45; % [deg]
+% [nodes_planar, nodes_folded, edges, faces] = flasherConical_v3(N, n, h, A,phi_deg*pi/180);
+[nodes_planar, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasherConical_v3(N, n, h, A,phi_deg*pi/180);
 
 lengths     = getEdgeLengths(nodes_planar, edges);
 lengths_p   = getEdgeLengths(nodes_folded, edges);
 error       = (lengths - lengths_p)./lengths_p*100;
 
-figure();
-plot(1:length(edges), error, 'o--')
-xlabel('Edge index')
-ylabel('Length error (percent)')
+% figure();
+% plot(1:length(edges), error, 'o--')
+% xlabel('Edge index')
+% ylabel('Length error (percent)')
 
-angles = foldedCreaseAngles(nodes_folded, edges, faces);
+angles = foldedCreaseAngles(nodes_folded, edges, triangulated);
 
+% 2d folded plot
 plot2dNodesEdges(nodes_planar, edges, angles);
-f3 = plot3dNodesEdges(nodes_folded, edges, angles);
-%plotCreasePatternWithLabels(nodes_planar, edges)
+
+% 3d folded plot
+plot3dNodesEdges(nodes_planar, edges, angles); rotate3d on; axis on;
+f3 = plot3dNodesEdges(nodes_folded, edges, angles); rotate3d on;
+plotCreasePatternWithLabels(nodes_planar, edges)
 
 D_deployed  = 2*max(sqrt(nodes_planar(1, :).^2 + nodes_planar(2, :).^2));
 
 
 figure(f3);
 p1 = patch();
-p1.Faces = faces;
+p1.Faces = triangulated;
 p1.Vertices = nodes_folded';
 p1.FaceAlpha = 0.9;
 p1.FaceColor = [0.7 0.7 0.7];

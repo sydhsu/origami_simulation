@@ -1,8 +1,22 @@
-% outputs the crease pattern (both unfolded and folded) for a
+% Outputs the crease pattern (both unfolded and folded) for a
 % thickness-accommodating flasher with N gores (or 2N major folds), n nodes
 % per major fold line, h is the thickness, A is the radius of the hub
+% 
+% Inputs:
+%   N - number of sides of polygon
+%   n - number of nodes per major fold line
+%   h - panel thickness
+%   A - radius of polygonal hub
+%
+% Outputs:
+%   nodes_planar - 3-D coordinates in unfolded/flat crease pattern
+%   nodes_folded - 3-D coordinates in folded crease pattern
+%   edges - array of node pairs that form an edge
+%   triangulated - groups of 3 nodes that form a triangulated face after triangulating the entire pattern
+%   tri_faces - groups of 3 nodes that form a triangular panel
+%   quad_faces - groups of 4 nodes that form a quadrilateral panel
 
-function [nodes_planar, nodes_folded, edges, faces, quad_faces] = flasher(N, n, h, A)
+function [nodes_planar, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasher(N, n, h, A)
     beta    = 2*pi()/N;
     delta_z = 2*A*sin(beta/2)*tan(beta/2); % changes in height of mountain for a zero-thickness flasher
     d       = h/cos(beta/2);
@@ -34,7 +48,8 @@ function [nodes_planar, nodes_folded, edges, faces, quad_faces] = flasher(N, n, 
     nodes_planar    = [];
     nodes_folded    = [];
     edges           = [];
-    faces           = [];
+    triangulated    = [];
+    tri_faces       = [];
     quad_faces      = [];
 
     for j = 1:N
@@ -59,12 +74,14 @@ function [nodes_planar, nodes_folded, edges, faces, quad_faces] = flasher(N, n, 
                 m_id(2, j),     v_id(2, j)]; %;...      % minor mountain                    
 %                 m_id(2, j),     v_id(2, j + 1)];    % diagonal
                             
-        faces = [faces;...
+        triangulated = [triangulated;...
                 v_id(1, j),     m_id(2, j), v_id(2, j);...                    
                 v_id(1, j),     m_id(2, j), v_id(1, j + 1);...
-                v_id(1, j + 1), m_id(2, j), v_id(2, j + 1)]; % triangulated
-%         quad_faces = [quad_faces;...
-%             v_id(1, j + 1), m_id(2, j), m_id(3, j), v_id(2, j + 1)];
+                v_id(1, j + 1), m_id(2, j), v_id(2, j + 1)]; % cuts quadrilateral panel in half
+
+        tri_faces = [tri_faces;...
+                v_id(1, j),     m_id(2, j), v_id(2, j);...                    
+                v_id(1, j),     m_id(2, j), v_id(1, j + 1)];
 
         for i = 2:(n - 1)            
             edges = [edges;...
@@ -74,16 +91,14 @@ function [nodes_planar, nodes_folded, edges, faces, quad_faces] = flasher(N, n, 
                     m_id(i + 1, j), v_id(i + 1, j)];%;...  % minor mountain
 %                     m_id(i, j),     v_id(i + 1, j);...  % diagonal                    
 %                     m_id(i + 1, j), v_id(i + 1, j + 1)];% diagonal            
-            % triangulated    
-            faces = [faces;...
+            triangulated = [triangulated;...
                     v_id(i, j),     m_id(i, j),     v_id(i + 1, j);...
                     m_id(i, j),     v_id(i + 1, j), m_id(i + 1, j);...
                     m_id(i, j),     m_id(i + 1, j), v_id(i, j + 1);...
                     v_id(i, j + 1), v_id(i + 1, j + 1), m_id(i + 1, j)];
             quad_faces = [quad_faces;...
                     v_id(i, j),     m_id(i, j),     m_id(i + 1, j),  v_id(i + 1, j);... 
-                    m_id(i, j),     v_id(i-1,j+1),  v_id(i,j+1),     m_id(i+1, j);...
-                ];
+                    m_id(i, j),     v_id(i-1,j+1),  v_id(i,j+1),     m_id(i+1, j)];
         end        
     end
 end
