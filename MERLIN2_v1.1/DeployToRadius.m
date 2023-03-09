@@ -1,4 +1,5 @@
-% Stopping criterion for origami simulation
+% Stopping criterion for origami Flasher simulation
+% ======================================================================= %
 % Inputs: 
 %    Node - initial nodal coordinates
 %    U    - displacement of current time step icrm
@@ -6,6 +7,7 @@
 %
 % Output:
 %    flag - 1 if criterion met, 0 otherwise
+% ======================================================================= %
 
 function flag = DeployToRadius(Node,U,icrm)
     if icrm > 0
@@ -15,8 +17,7 @@ function flag = DeployToRadius(Node,U,icrm)
         Nodenw(:,3) = Node(:,3)+U(3:3:end);
         norm2d = vecnorm(Nodenw(:,1:2),2,2);
         global R_planar;
-%         flag = any( norm2d >= R_planar*.999 ); % *.999
-        flag = norm2d(14) <= 1;
+        flag = any( norm2d >= R_planar*.99 );
         if(flag)
             fprintf('Stopping condition met. Radius: \n');
             fprintf(num2str(max(norm2d)));

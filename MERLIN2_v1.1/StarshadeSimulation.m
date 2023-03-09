@@ -14,7 +14,7 @@
 %      K. Liu, G. H. Paulino (2018). 'Highly efficient nonlinear          %
 %      structural analysis of origami assemblages using the MERLIN2       %
 %      software.' Origami^7.                                              %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ======================================================================= %
 
 %% Define geometry
 
@@ -22,10 +22,10 @@ close all;
 
 tic
 
-% Origami structure to analyze: 'simple_flasher' or 'starshade_os'
-origamiStructure = 'simple_flasher';
-% 1 = Displacement, 2 = Force, 3 = Adaptive load
-controlsetting = 4;
+% Origami structure to analyze: 'starshade_os' or 'starshade_os'
+origamiStructure = 'starshade_os';
+% Model settings
+controlsetting = 1;
 % initial configuration: 'folded' or 'unfolded'
 initialState = 'folded';
 
@@ -40,25 +40,24 @@ global n_flasher;
 global N_flasher;
 
 if strcmp(origamiStructure,'simple_flasher')
-    A_flasher   = 400;  % radius of inner polygon
+    A_flasher   = .400;  % radius of inner polygon
     N_flasher   = 6;   % number of sides of polygon
-    h_flasher   = 10;   % thickness
+    h_flasher   = 10e-3;   % thickness
     n_flasher   = 7;   % number of minor folds
-    [nodes_planar, nodes_folded, edges, faces] = flasher(N_flasher, n_flasher, h_flasher, A_flasher);
+    [nodes_unfolded, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasher(N_flasher, n_flasher, h_flasher, A_flasher);
 elseif strcmp(origamiStructure,'starshade_os')
     A_flasher   = .734; % [m] radius of inner polygon
     N_flasher   = 14; % number of sides of polygon
     h_flasher   = 16e-3; % [m] thickness
     n_flasher = 14; % number of minor folds
     phi_flasher = 5.45; % [deg]
-    [nodes_planar, nodes_folded, edges, faces] = flasherConical_v3(N_flasher, n_flasher, h_flasher, A_flasher,phi_flasher*pi/180);
+    [nodes_unfolded, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasherConical_v3(N_flasher, n_flasher, h_flasher, A_flasher,phi_flasher*pi/180);
 else
     error('Undefined origami structure');
 end
 
-flasher_angles = foldedCreaseAngles(nodes_folded, edges, faces);
 global R_planar;
-R_planar  = max(sqrt(nodes_planar(1, :).^2 + nodes_planar(2, :).^2)); % deployed radius (in the x-y plane)
+R_planar  = max(sqrt(nodes_unfolded(1, :).^2 + nodes_unfolded(2, :).^2)); % deployed radius (in the x-y plane)
 
 % Flasher visualization using pattern generation functions
 % plot2dNodesEdges(nodes_planar, edges, flasher_angles);
@@ -69,12 +68,13 @@ R_planar  = max(sqrt(nodes_planar(1, :).^2 + nodes_planar(2, :).^2)); % deployed
 if strcmp(initialState,'folded')
     Node = nodes_folded';
 elseif strcmp(initialState,'unfolded')
-    Node = nodes_planar';
+    Node = nodes_unfolded';
 else
     error('Undefined initial state');
 end
 
-Panel = num2cell(faces,2); % TODO: quad faces
+% Panels defined by triangular and quadrilateral faces
+Panel = [num2cell(tri_faces,2); num2cell(quad_faces,2)];
 
 % Visualize initial configuration 
 figure()
@@ -83,6 +83,7 @@ axis equal;
 axis off;
 rotate3d on;
 light
+
 % Inspect nodal index assignment
 figure()
 PlotOri(Node,Panel,[],'ShowNumber','on');
@@ -94,57 +95,24 @@ m = size(Node,1); % total number of nodes
 
 % Adaptive load magnitude
 global loadMag; % used in RadialLoad.m
-loadMag = 2; % [N] (+) value defined as outwards force
+loadMag = 10; % [N] (+) value defined as outwards force
 
 % Flasher boundary conditions
-centralNodes = (1:n_flasher:m)'; % nodes to fix; follows numbering system from flasher()
+centralNodes = (1:n_flasher:m)'; % nodes to fix; follows numbering from flasher pattern generation
 constrainDOF = ones(length(centralNodes),3);
 Supp = [centralNodes,constrainDOF]; % fixed nodes at the central polygon
 
 %% Define material and modeling parameters
-% Simulation options using the N5B8 model
-if controlsetting == 1 % Displacement mode settings
-    AnalyInputOpt = struct(...
-        'ModelType','N5B8',...
-        'MaterCalib','auto',...  
-        'ModElastic', 1e3,... % [MPa] (1 GPa)
-        'Poisson', 0.3,...
-        'Thickness', 0.25,... % [mm]
-        'LScaleFactor', 2,...
-        'LoadType','Displacement',...  % Displacement load
-        'DispStep',200);
-elseif controlsetting == 2 % Force mode settings
-    AnalyInputOpt = struct(...
-        'ModelType','N5B8',...
-        'MaterCalib','auto',...  
-        'ModElastic', 1e3,... % [MPa] (1 GPa)
-        'Poisson', 0.3,...
-        'Thickness', 0.25,... % [mm]
-        'LScaleFactor', 2,...
-        'LoadType','Force',...  % Force load
-        'InitialLoadFactor', 0.00001,...
-        'MaxIcr', 100);
-elseif controlsetting == 3 % Adaptive Load auto mode settings
-    AnalyInputOpt = struct(...
-        'ModelType','N5B8',...
-        'MaterCalib','auto',...  
-        'ModElastic', 1e3,... % [MPa] (1 GPa)
-        'Poisson', 0.3,...
-        'Thickness', 0.25,... % [mm]
-        'LScaleFactor', 2,...
-        'AdaptiveLoad',@RadialLoad,...
-        'InitialLoadFactor', 0.00001,...
-        'MaxIcr', 100); 
-elseif controlsetting == 4 % Adaptive load force mode settings (overrides Load)
-    C0 = 1e10; % initial tangent modulus of bar
-    Abar = 3.2e-5; % cross-sectional area of bar [m^2] (32x1 mm)
+if controlsetting == 1 % Adaptive load force mode settings (overrides Load)
+    C0 = 68.9e9; % [Pa] initial tangent modulus of bar
+    Abar = 16e-6; % cross-sectional area of bar [m^2] (16x1 mm)
     Kb = 1e1; % [Nm/rad]
     Kf = 1e-5; % [Nm/rad]
     thetaMin = 0; % [deg]
     thetaMax = 360; % [deg]
 
     AnalyInputOpt = struct(...
-        'ModelType','N5B8',... % triangulation mode
+        'ModelType','N5B8',... % triangulation mode % N4B5 or N5B8
         'MaterCalib','manual',... 
         'BarCM',@(Ex)Ogden(Ex, C0),...
         'Abar',Abar,...
@@ -154,24 +122,12 @@ elseif controlsetting == 4 % Adaptive load force mode settings (overrides Load)
         'RotSprFold', @(he,h0,Kf,L0)EnhancedLinear(he,h0,Kf,L0,thetaMin,thetaMax),...
         'ZeroBend','Flat',...
         'LoadType','Force',...  % Force load
-        'InitialLoadFactor', 0.00001,...
-        'MaxIcr', 200,...
+        'InitialLoadFactor', 1,... % controls starting load magnitude
+        'MaxIcr', 50,...
         'AdaptiveLoad',@RadialLoad,...
         'StopCriterion',@(Node,U,icrm)DeployToRadius(Node,U,icrm));
 end
 
-% Simulation options using the N4B5 model
-% AnalyInputOpt = struct(...
-%     'ModelType','N4B5',...
-%     'MaterCalib','manual',... 
-%     'BarCM', @(Ex)Ogden(Ex, 1e4),...
-%     'Abar', 2e-1,...
-%     'Kb',0.3,...
-%     'Kf',0.03,...
-%     'RotSprBend', @(he,h0,Kb,L0)EnhancedLinear(he,h0,Kb,L0,30,330),...
-%     'RotSprFold', @(he,h0,Kf,L0)EnhancedLinear(he,h0,Kf,L0,30,330),...
-%     'LoadType','Displacement',...    % Displacement load
-%     'DispStep', 200);
 
 %% Perform analysis
 % Assemble input data

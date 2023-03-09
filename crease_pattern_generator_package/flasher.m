@@ -1,7 +1,7 @@
 % Outputs the crease pattern (both unfolded and folded) for a
 % thickness-accommodating flasher with N gores (or 2N major folds), n nodes
 % per major fold line, h is the thickness, A is the radius of the hub
-% 
+% ======================================================================= %
 % Inputs:
 %   N - number of sides of polygon
 %   n - number of nodes per major fold line
@@ -12,9 +12,10 @@
 %   nodes_planar - 3-D coordinates in unfolded/flat crease pattern
 %   nodes_folded - 3-D coordinates in folded crease pattern
 %   edges - array of node pairs that form an edge
-%   triangulated - groups of 3 nodes that form a triangulated face after triangulating the entire pattern
+%   triangulated - groups of 3 nodes after triangulating the entire pattern
 %   tri_faces - groups of 3 nodes that form a triangular panel
 %   quad_faces - groups of 4 nodes that form a quadrilateral panel
+% ======================================================================= %
 
 function [nodes_planar, nodes_folded, edges, triangulated, tri_faces, quad_faces] = flasher(N, n, h, A)
     beta    = 2*pi()/N;
